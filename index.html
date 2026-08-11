@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>고양이가 움직이고 명언도 알려줘요!</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game">
+    <div id="status-bar">
+      <div id="hunger">배고픔: <span id="hunger-value">5</span>/5</div>
+      <div id="affection">애정: <span id="affection-value">5</span>/5</div>
+      <button id="toggle-background">배경 전환</button>
+    </div>
+
+    <div id="scene">
+      <img id="cat" src="assets/sprites/cat.png" alt="cat" width="64" height="64" />
+    </div>
+
+    <div id="speech-bubble" class="hidden"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
