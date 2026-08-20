@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>회원가입 폼</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input { display: block; margin-bottom: 10px; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h1>회원가입</h1>
+  <input id="usernameInput" placeholder="아이디">
+  <input id="passwordInput" type="password" placeholder="비밀번호">
+  <button id="signupBtn">가입하기</button>
+  <p id="output"></p>
+
+  <script>
+    function getUsers() {
+      const saved = localStorage.getItem("users");
+      return saved ? JSON.parse(saved) : [];
+    }
+
+    function signup(username, password) {
+      const users = getUsers();
+
+      if (!username || !password) {
+        return "아이디와 비밀번호를 모두 입력해주세요.";
+      }
+      if (users.some((u) => u.username === username)) {
+        return "이미 존재하는 아이디입니다.";
+      }
+      users.push({ username, password });
+      localStorage.setItem("users", JSON.stringify(users));
+      return "회원가입 성공!";
+    }
+
+    document.getElementById("signupBtn").addEventListener("click", () => {
+      const username = document.getElementById("usernameInput").value;
+      document.getElementById("usernameInput").value = ""
+      const password = document.getElementById("passwordInput").value;
+      
+      document.getElementById("output").textContent = signup(username, password);
+      document.getElementById("usernameInput").value = ""
+      document.getElementById("passwordInput").value = ""
+  </script>
+</body>
+</html>

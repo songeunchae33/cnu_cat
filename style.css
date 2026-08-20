@@ -38,10 +38,40 @@ body {
   background: linear-gradient(to bottom, #a8e6a1, #eaffea);
 }
 
-#cat {
+.cat-sprite {
   position: absolute;
-  image-rendering: pixelated;
+  top: 0;
+  left: 0;
+  height: 88px;
+  background-repeat: no-repeat;
   cursor: pointer;
+  transform-origin: center bottom;
+}
+
+.cat-sprite.state-idle {
+  width: 78px;
+  background-image: url("assets/sprites/cat-idle.png");
+  background-size: 78px 88px;
+}
+
+.cat-sprite.state-walk {
+  width: 90px;
+  background-image: url("assets/sprites/cat-walk.png");
+  background-size: 360px 88px;
+  animation: cat-walk-cycle 0.7s steps(4) infinite;
+}
+
+.cat-sprite.facing-right {
+  transform: scaleX(-1);
+}
+
+@keyframes cat-walk-cycle {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -360px 0;
+  }
 }
 
 #speech-bubble {
