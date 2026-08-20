@@ -9,18 +9,104 @@
 <body>
   <div id="game">
     <div id="status-bar">
-      <div id="hunger">배고픔: <span id="hunger-value">5</span>/5</div>
-      <div id="affection">애정: <span id="affection-value">5</span>/5</div>
-      <button id="toggle-background">배경 전환</button>
+      <div class="stat">
+        <span class="stat-label">배고픔</span>
+        <span id="hunger-pips" class="pips"></span>
+        <span id="hunger-value">5</span>/5
+      </div>
+      <div class="stat">
+        <span class="stat-label">애정</span>
+        <span id="affection-pips" class="pips"></span>
+        <span id="affection-value">5</span>/5
+      </div>
+      <span id="online-count"></span>
+      <span id="current-user-label"></span>
+      <button id="open-settings" type="button">고양이 설정</button>
+      <button id="switch-user" type="button">로그아웃</button>
+      <button id="toggle-background" type="button">배경 전환</button>
     </div>
 
     <div id="scene">
-      <div id="cat" class="cat-sprite state-idle"></div>
+      <div class="city-decor" aria-hidden="true">
+        <div class="stars"></div>
+        <div class="moon"></div>
+        <div class="skyline skyline-back"></div>
+        <div class="skyline skyline-front"></div>
+      </div>
+
+      <div id="cat-wrap">
+        <div id="cat-name-tag" class="hidden"></div>
+        <div id="cat-flip">
+          <div id="cat" class="cat-sprite skin-white state-idle"></div>
+        </div>
+      </div>
+
+      <div id="fortune-spot" title="클릭하거나, 고양이를 이곳으로 데려오면 오늘의 한마디를 알려줘요">🥠</div>
     </div>
 
     <div id="speech-bubble" class="hidden"></div>
+
+    <div id="login-overlay">
+      <form id="login-form" class="modal-card">
+        <h1>고양이가 움직이고 명언도 알려줘요!</h1>
+        <p id="login-config-warning" class="login-warning hidden">
+          ⚠️ 아직 Supabase 설정이 안 되어 있어요. <code>config.js</code>에 프로젝트 URL과 anon key를 넣고
+          새로고침해주세요.
+        </p>
+        <p id="login-subtitle">이메일/비밀번호로 로그인하면 나만의 고양이를 만날 수 있어요. 친구도 같이 접속하면 서로의 고양이를 실시간으로 볼 수 있어요!</p>
+        <input id="login-email" type="email" placeholder="이메일" autocomplete="username" required />
+        <input
+          id="login-password"
+          type="password"
+          placeholder="비밀번호 (6자 이상)"
+          autocomplete="current-password"
+          minlength="6"
+          required
+        />
+        <p id="login-error" class="login-error hidden"></p>
+        <button id="login-submit" type="submit">로그인</button>
+        <button id="login-toggle-mode" type="button" class="link-button">계정이 없으신가요? 회원가입</button>
+      </form>
+    </div>
+
+    <div id="settings-overlay" class="hidden">
+      <div class="modal-card">
+        <h2>고양이 설정</h2>
+        <label class="settings-field">
+          고양이 이름
+          <input id="cat-name-input" type="text" maxlength="8" placeholder="고양이 이름" autocomplete="off" />
+        </label>
+        <div class="settings-field">
+          <span>고양이 스킨</span>
+          <div class="skin-picker">
+            <button type="button" class="skin-option" data-skin="white">
+              <span class="skin-swatch skin-white"></span>새하얀 야옹이
+            </button>
+            <button type="button" class="skin-option" data-skin="cheese">
+              <span class="skin-swatch skin-cheese"></span>치즈냥이
+            </button>
+            <button type="button" class="skin-option" data-skin="black">
+              <span class="skin-swatch skin-black"></span>까망이
+            </button>
+          </div>
+        </div>
+        <div class="settings-field">
+          <span>걸을 때 나는 소리</span>
+          <p class="settings-hint">직접 녹음하면 기본 효과음 대신 그 소리가 걸을 때마다 반복돼요 (1.5초까지, 짧을수록 좋아요).</p>
+          <div class="sound-recorder">
+            <button id="record-sound-btn" type="button">🎙️ 녹음하기</button>
+            <button id="preview-sound-btn" type="button">▶️ 미리듣기</button>
+            <button id="reset-sound-btn" type="button">기본음으로</button>
+          </div>
+          <p id="sound-status" class="settings-hint"></p>
+        </div>
+        <button id="close-settings" type="button">닫기</button>
+      </div>
+    </div>
   </div>
 
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

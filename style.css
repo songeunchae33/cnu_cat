@@ -7,6 +7,10 @@ body {
   font-family: sans-serif;
 }
 
+.hidden {
+  display: none;
+}
+
 #game {
   position: relative;
   width: 100vw;
@@ -27,25 +31,194 @@ body {
   background: rgba(255, 255, 255, 0.7);
 }
 
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.pips {
+  display: inline-flex;
+  gap: 2px;
+  margin-right: 2px;
+}
+
+.pips span {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ddd;
+  display: inline-block;
+}
+
+#hunger-pips span.filled {
+  background: #ffb347;
+}
+
+#affection-pips span.filled {
+  background: #ff6f91;
+}
+
+#current-user-label {
+  font-size: 13px;
+  color: #444;
+  margin-left: auto;
+}
+
+#status-bar button {
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
 #scene {
   position: relative;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, #7ec8f2, #d9f2ff);
+  background: linear-gradient(to bottom, #1b0f3a 0%, #4a2f7a 35%, #b0568c 65%, #f2a35c 100%);
 }
 
 #scene.bg-nature {
   background: linear-gradient(to bottom, #a8e6a1, #eaffea);
 }
 
-.cat-sprite {
+#scene.bg-nature .city-decor {
+  display: none;
+}
+
+/* 레트로 픽셀 도시 배경: 별/달/2겹 빌딩 숲 실루엣을 순수 CSS로 구현 */
+.city-decor {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.stars {
   position: absolute;
   top: 0;
   left: 0;
+  right: 0;
+  height: 55%;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1.4px),
+    radial-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1.4px);
+  background-size: 60px 70px, 130px 110px;
+  background-position: 10px 15px, 40px 60px;
+}
+
+.moon {
+  position: absolute;
+  top: 10%;
+  right: 12%;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #ffe9b0;
+  box-shadow: 0 0 0 6px rgba(255, 233, 176, 0.15), 0 0 24px 6px rgba(255, 233, 176, 0.35);
+}
+
+.moon::after {
+  content: "";
+  position: absolute;
+  top: 30%;
+  left: 20%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(190, 150, 90, 0.35);
+  box-shadow: 16px 6px 0 -1px rgba(190, 150, 90, 0.3), 4px 16px 0 -1px rgba(190, 150, 90, 0.25);
+}
+
+.skyline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.skyline-back {
+  height: 34%;
+  background-color: #4b3f78;
+  background-image: radial-gradient(rgba(255, 220, 160, 0.55) 1px, transparent 1.4px);
+  background-size: 10px 14px;
+  background-position: 4px 6px;
+  clip-path: polygon(
+    0% 45%, 12.5% 45%, 12.5% 30%, 25% 30%, 25% 50%, 37.5% 50%, 37.5% 20%, 50% 20%,
+    50% 40%, 62.5% 40%, 62.5% 10%, 75% 10%, 75% 45%, 87.5% 45%, 87.5% 25%, 100% 25%,
+    100% 100%, 0% 100%
+  );
+  opacity: 0.85;
+}
+
+.skyline-front {
+  height: 46%;
+  background-color: #1c1533;
+  background-image: radial-gradient(rgba(255, 220, 160, 0.9) 1.2px, transparent 1.6px);
+  background-size: 9px 12px;
+  background-position: 3px 4px;
+  clip-path: polygon(
+    0% 40%, 16.6% 40%, 16.6% 15%, 33.3% 15%, 33.3% 50%, 50% 50%, 50% 5%, 56% 5%,
+    56% 0%, 58% 0%, 58% 5%, 66.6% 5%, 66.6% 35%, 83.3% 35%, 83.3% 25%, 100% 25%,
+    100% 100%, 0% 100%
+  );
+}
+
+/* 고양이 구조: 위치는 #cat-wrap, 방향 반전은 #cat-flip, 상태 애니메이션/스킨은 #cat 에서 각각 처리해
+   scaleX(방향 반전) / 상태별 transform 애니메이션 / 이름표(반전 없음)가 서로 충돌하지 않도록 함 */
+#cat-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-block;
+  cursor: pointer;
+  touch-action: none;
+  z-index: 5;
+}
+
+#cat-flip {
+  display: inline-block;
+}
+
+#cat-flip.facing-right {
+  transform: scaleX(-1);
+}
+
+#cat-name-tag {
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+#cat-name-tag.hidden {
+  display: none;
+}
+
+.cat-sprite {
+  position: relative;
   height: 88px;
   background-repeat: no-repeat;
-  cursor: pointer;
   transform-origin: center bottom;
+  --skin-filter: ;
+  --state-filter: ;
+  filter: var(--skin-filter) var(--state-filter);
+}
+
+.cat-sprite.skin-cheese {
+  --skin-filter: sepia(0.6) saturate(3.2) hue-rotate(-12deg) brightness(1.05);
+}
+
+.cat-sprite.skin-black {
+  --skin-filter: brightness(0.42) saturate(0.55);
 }
 
 .cat-sprite.state-idle {
@@ -61,10 +234,6 @@ body {
   animation: cat-walk-cycle 0.7s steps(4) infinite;
 }
 
-.cat-sprite.facing-right {
-  transform: scaleX(-1);
-}
-
 @keyframes cat-walk-cycle {
   from {
     background-position: 0 0;
@@ -74,16 +243,382 @@ body {
   }
 }
 
+/* 전용 그루밍 스프라이트가 없어 idle 이미지에 흔들림 애니메이션을 얹은 임시(placeholder) 연출 */
+.cat-sprite.state-groom {
+  width: 78px;
+  background-image: url("assets/sprites/cat-idle.png");
+  background-size: 78px 88px;
+  animation: cat-groom-wiggle 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes cat-groom-wiggle {
+  from {
+    transform: rotate(-3deg) scaleY(0.98);
+  }
+  to {
+    transform: rotate(3deg) scaleY(1.02);
+  }
+}
+
+.cat-sprite.state-crouch {
+  width: 78px;
+  background-image: url("assets/sprites/cat-idle.png");
+  background-size: 78px 88px;
+  transform: scaleY(0.72) translateY(14%);
+  --state-filter: saturate(0.7) brightness(0.95);
+}
+
+.cat-sprite.state-crouch::after {
+  content: "💤";
+  position: absolute;
+  top: -14px;
+  right: -6px;
+  font-size: 14px;
+}
+
+/* 친구 고양이(실시간 Presence로 받아온 다른 사용자)는 #cat-wrap이 아니라
+   .remote-cat 클래스로 렌더링되므로 동일한 구조를 클래스 기반으로 다시 정의 */
+.remote-cat {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-block;
+  pointer-events: none;
+  z-index: 4;
+  transition: left 0.4s linear, top 0.4s linear;
+}
+
+.remote-cat .cat-flip {
+  display: inline-block;
+}
+
+.remote-cat .cat-flip.facing-right {
+  transform: scaleX(-1);
+}
+
+.remote-cat .cat-name-tag {
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  transform: translateX(-50%);
+  background: rgba(40, 20, 60, 0.7);
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.tuna-can {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  z-index: 4;
+}
+
+.tuna-can.dragging {
+  cursor: grabbing;
+  z-index: 15;
+}
+
+#fortune-spot {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px dashed #b98b3e;
+  background: rgba(255, 248, 230, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  z-index: 3;
+  cursor: pointer;
+  animation: fortune-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes fortune-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(185, 139, 62, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(185, 139, 62, 0);
+  }
+}
+
+.footprint {
+  position: absolute;
+  transform: translate(-50%, -50%) scale(0.6);
+  font-size: 12px;
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 2;
+  animation: footprint-fade 2.2s ease-out forwards;
+}
+
+@keyframes footprint-fade {
+  0% {
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.float-pop {
+  position: absolute;
+  transform: translate(-50%, 0);
+  font-size: 20px;
+  pointer-events: none;
+  animation: float-up 1s ease-out forwards;
+  z-index: 20;
+  white-space: nowrap;
+}
+
+@keyframes float-up {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -40px);
+  }
+}
+
 #speech-bubble {
   position: absolute;
+  max-width: 220px;
   padding: 8px 12px;
   background: white;
   border: 2px solid #333;
   border-radius: 8px;
   font-size: 14px;
+  text-align: center;
+  line-height: 1.4;
   pointer-events: none;
+  z-index: 20;
 }
 
 #speech-bubble.hidden {
   display: none;
+}
+
+/* ---------- 로그인 / 설정 모달 ---------- */
+#login-overlay,
+#settings-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 15, 35, 0.65);
+}
+
+#login-overlay {
+  z-index: 60;
+}
+
+#login-overlay.hidden,
+#settings-overlay.hidden {
+  display: none;
+}
+
+.modal-card {
+  width: min(320px, 86vw);
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.modal-card h1 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+.modal-card h2 {
+  font-size: 16px;
+  margin: 0 0 14px;
+}
+
+.modal-card p {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 14px;
+}
+
+.modal-card input[type="text"],
+.modal-card input[type="email"],
+.modal-card input[type="password"] {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.modal-card button[type="submit"],
+#close-settings {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  background: #ff9457;
+  color: #fff;
+  cursor: pointer;
+}
+
+.modal-card button[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.link-button {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  background: none;
+  border: none;
+  color: #a15a2e;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-warning {
+  background: #fff4e5;
+  border: 1px solid #f0c477;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  color: #7a4a10;
+  text-align: left;
+}
+
+.login-warning code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.login-error {
+  background: #fdecec;
+  border: 1px solid #f3b4b4;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  color: #a02323;
+  text-align: left;
+}
+
+.settings-field {
+  display: block;
+  text-align: left;
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 14px;
+}
+
+.settings-field input[type="text"] {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.skin-picker {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.skin-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background: #f2f2f2;
+  cursor: pointer;
+}
+
+.skin-option.selected {
+  border-color: #ff9457;
+  background: #fff3ea;
+}
+
+.skin-swatch {
+  width: 32px;
+  height: 32px;
+  background-image: url("assets/sprites/cat-idle.png");
+  background-size: 96px 108px;
+  background-position: -12px -8px;
+  image-rendering: pixelated;
+}
+
+.skin-swatch.skin-cheese {
+  filter: sepia(0.6) saturate(3.2) hue-rotate(-12deg) brightness(1.05);
+}
+
+.skin-swatch.skin-black {
+  filter: brightness(0.42) saturate(0.55);
+}
+
+.settings-hint {
+  font-size: 11px;
+  color: #888;
+  margin: 4px 0 0;
+}
+
+.sound-recorder {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.sound-recorder button {
+  flex: 1;
+  font-size: 11px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: #f2f2f2;
+  cursor: pointer;
+}
+
+.sound-recorder button.recording {
+  background: #ff5b5b;
+  border-color: #ff5b5b;
+  color: #fff;
+}
+
+.sound-recorder button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
