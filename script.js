@@ -119,10 +119,34 @@ document.addEventListener("DOMContentLoaded", () => {
   function getRandomSaying() {
     return sayings[Math.floor(Math.random() * sayings.length)];
   }
-  function getTodaysSaying() {
+
+  // ---------- 운세 지점(🥠): 사자성어가 아니라 진짜 "오늘의 운세"처럼 보이도록 ----------
+  const FORTUNE_LOVE = ["최고예요 💕", "따뜻해요 😽", "잔잔하게 좋아요", "빠르게 오르는 중이에요", "폭발적이에요 😻"];
+  const FORTUNE_CAUTION = ["낮잠 과다", "간식 과식", "혼자만의 시간 부족", "발톱 정리 깜빡", "창밖 멍때리기", "츄르 중독"];
+  const FORTUNE_COLOR = ["파랑", "노랑", "분홍", "초록", "보라", "주황", "하양"];
+
+  function hashDateString(str) {
     let hash = 0;
-    for (const ch of lastDate) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-    return sayings[hash % sayings.length];
+    for (const ch of str) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    return hash;
+  }
+
+  function getTodaysFortune() {
+    const base = hashDateString(lastDate);
+    return {
+      love: FORTUNE_LOVE[base % FORTUNE_LOVE.length],
+      caution: FORTUNE_CAUTION[Math.floor(base / 7) % FORTUNE_CAUTION.length],
+      color: FORTUNE_COLOR[Math.floor(base / 13) % FORTUNE_COLOR.length],
+    };
+  }
+
+  function showTodaysFortune(anchorEl) {
+    const f = getTodaysFortune();
+    showBubble(
+      `🥠 오늘의 운세<br>오늘은 애정운이 ${f.love}<br>오늘은 ${f.caution}을 조심하세요<br>오늘은 ${f.color}이 잘 어울려요`,
+      5000,
+      anchorEl
+    );
   }
 
   // ---------- 상태바 UI ----------
@@ -576,8 +600,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         hunger = clamp(hunger - 1, 1, 5);
         if (rectsOverlap(catWrap.getBoundingClientRect(), fortuneSpot.getBoundingClientRect())) {
-          const s = getTodaysSaying();
-          showBubble(`오늘의 한마디 🥠<br><strong>${s.text}</strong><br>${s.meaning}`, 4000);
+          showTodaysFortune(catWrap);
         }
       }
       applyHungerEffects();
@@ -656,10 +679,9 @@ document.addEventListener("DOMContentLoaded", () => {
     while (cans.length < CAN_COUNT) spawnCan();
   }
 
-  // ---------- 운세 지점: 클릭해도, 고양이를 드래그해서 데려다놔도 오늘의 한마디 ----------
+  // ---------- 운세 지점: 클릭해도, 고양이를 드래그해서 데려다놔도 오늘의 운세 ----------
   fortuneSpot.addEventListener("click", () => {
-    const s = getTodaysSaying();
-    showBubble(`오늘의 한마디 🥠<br><strong>${s.text}</strong><br>${s.meaning}`, 4000, fortuneSpot);
+    showTodaysFortune(fortuneSpot);
   });
 
   // ---------- 설정 모달: 고양이 이름 / 스킨 ----------
