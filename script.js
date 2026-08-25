@@ -746,11 +746,14 @@ document.addEventListener("DOMContentLoaded", () => {
     broadcastFootstepSound();
   });
 
-  // ---------- 친구 고양이 실시간 만남: Supabase Presence(임시 방송, DB에 남지 않음) ----------
-  let presenceChannel = null;
+  // ---------- 친구 고양이 실시간 만남: 자체 Python(FastAPI) 서버, Render에 배포 ----------
+  let rtSocket = null;
+  let rtBroadcastStarted = false;
   const remoteCats = new Map(); // userId -> { wrapEl, nameEl, flipEl, spriteEl, lastX, lastY }
   const remoteSounds = new Map(); // userId -> 녹음된 발걸음 소리 dataUrl | null(기본 합성음)
   const PRESENCE_INTERVAL_MS = 400;
+  const isRealtimeConfigured =
+    typeof REALTIME_WS_URL === "string" && REALTIME_WS_URL && !REALTIME_WS_URL.includes("YOUR-RENDER-URL");
 
   function updateOnlineCount() {
     onlineCountEl.textContent = `🌐 온라인 ${remoteCats.size + 1}마리`;
@@ -796,66 +799,81 @@ document.addEventListener("DOMContentLoaded", () => {
     remoteFootstepAudio.delete(userId);
   }
 
-  function syncRemoteCats(state) {
-    const seenIds = new Set();
-    Object.entries(state).forEach(([userId, entries]) => {
-      if (!currentUser || userId === currentUser.id) return;
-      const info = entries[entries.length - 1];
-      seenIds.add(userId);
-      upsertRemoteCat(userId, info);
-    });
-    for (const id of [...remoteCats.keys()]) {
-      if (!seenIds.has(id)) removeRemoteCat(id);
-    }
-    updateOnlineCount();
+  // 재연결 시 예전 친구 목록이 유령처럼 남지 않도록 비우고, 서버가 보내주는 최신 목록으로 다시 채운다.
+  function clearRemoteCats() {
+    for (const id of [...remoteCats.keys()]) removeRemoteCat(id);
   }
 
   function broadcastPresence() {
-    if (!presenceChannel || !currentUser) return;
-    presenceChannel.track({
-      name: catName,
-      skin,
-      x: pos.x,
-      y: pos.y,
-      facing: catFlip.classList.contains("facing-right") ? "right" : "left",
-    });
+    if (!rtSocket || rtSocket.readyState !== WebSocket.OPEN || !currentUser) return;
+    rtSocket.send(
+      JSON.stringify({
+        type: "state",
+        name: catName,
+        skin,
+        x: pos.x,
+        y: pos.y,
+        facing: catFlip.classList.contains("facing-right") ? "right" : "left",
+      })
+    );
   }
 
-  // 발걸음 소리는 용량이 있어서 400ms마다 도는 presence track()엔 안 싣고,
-  // 내가 접속했을 때 / 소리를 바꿨을 때 / 새 친구가 들어왔을 때만 방송(broadcast)한다.
   function broadcastFootstepSound() {
-    if (!presenceChannel || !currentUser) return;
-    presenceChannel.send({
-      type: "broadcast",
-      event: "footstep_sound",
-      payload: { userId: currentUser.id, sound: footstepSoundDataUrl },
-    });
+    if (!rtSocket || rtSocket.readyState !== WebSocket.OPEN || !currentUser) return;
+    rtSocket.send(JSON.stringify({ type: "sound", sound: footstepSoundDataUrl }));
   }
 
   function connectRealtime() {
-    if (!sb || !currentUser) return;
+    if (!currentUser) return;
+    if (!isRealtimeConfigured) {
+      onlineCountEl.textContent = "🌐 멀티플레이 서버 미설정";
+      return;
+    }
     onlineCountEl.textContent = "🌐 연결 중...";
-    presenceChannel = sb.channel("cats-room", { config: { presence: { key: currentUser.id } } });
-    presenceChannel
-      .on("presence", { event: "sync" }, () => syncRemoteCats(presenceChannel.presenceState()))
-      .on("presence", { event: "join" }, () => broadcastFootstepSound())
-      .on("broadcast", { event: "footstep_sound" }, ({ payload }) => {
-        if (payload && payload.userId && payload.userId !== currentUser.id) {
-          remoteSounds.set(payload.userId, payload.sound || null);
-        }
-      })
-      .on("system", {}, (payload) => console.log("[realtime] system event:", payload))
-      .subscribe((status, err) => {
-        console.log("[realtime] channel status:", status, err || "");
-        if (status === "SUBSCRIBED") {
-          broadcastPresence();
-          broadcastFootstepSound();
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          const detail = err && (err.message || err.reason || JSON.stringify(err));
-          onlineCountEl.textContent = `🌐 연결 실패 (${status})${detail ? ": " + detail : ""}`;
-        }
-      });
-    setInterval(broadcastPresence, PRESENCE_INTERVAL_MS);
+    const wsUrl = REALTIME_WS_URL.replace(/^http/, "ws").replace(/\/$/, "") + "/ws";
+    rtSocket = new WebSocket(wsUrl);
+
+    rtSocket.onopen = () => {
+      console.log("[realtime] connected");
+      clearRemoteCats();
+      rtSocket.send(JSON.stringify({ type: "hello", id: currentUser.id }));
+      broadcastPresence();
+      broadcastFootstepSound();
+      updateOnlineCount();
+      if (!rtBroadcastStarted) {
+        rtBroadcastStarted = true;
+        setInterval(broadcastPresence, PRESENCE_INTERVAL_MS);
+      }
+    };
+
+    rtSocket.onmessage = (ev) => {
+      let msg;
+      try {
+        msg = JSON.parse(ev.data);
+      } catch (err) {
+        return;
+      }
+      if (!msg || msg.id === currentUser.id) return;
+      if (msg.type === "state") {
+        upsertRemoteCat(msg.id, msg);
+        updateOnlineCount();
+      } else if (msg.type === "sound") {
+        remoteSounds.set(msg.id, msg.sound || null);
+      } else if (msg.type === "leave") {
+        removeRemoteCat(msg.id);
+        updateOnlineCount();
+      }
+    };
+
+    rtSocket.onclose = () => {
+      console.log("[realtime] closed, retrying in 3s");
+      onlineCountEl.textContent = "🌐 연결 끊김, 재연결 중...";
+      setTimeout(connectRealtime, 3000);
+    };
+
+    rtSocket.onerror = (err) => {
+      console.log("[realtime] socket error", err);
+    };
   }
 
   // ---------- 로그인: Supabase 이메일/비밀번호 실제 인증 ----------
