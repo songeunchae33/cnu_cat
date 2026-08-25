@@ -125,28 +125,25 @@ document.addEventListener("DOMContentLoaded", () => {
     return sayings[Math.floor(Math.random() * sayings.length)];
   }
 
-  // ---------- 운세 지점(🥠): 사자성어가 아니라 진짜 "오늘의 운세"처럼 보이도록 ----------
+  // ---------- 운세 지점(🥠): 매번 새로 뽑히는 운세 ----------
   const FORTUNE_LOVE = ["최고예요 💕", "따뜻해요 😽", "잔잔하게 좋아요", "빠르게 오르는 중이에요", "폭발적이에요 😻"];
   const FORTUNE_CAUTION = ["낮잠 과다", "간식 과식", "혼자만의 시간 부족", "발톱 정리 깜빡", "창밖 멍때리기", "츄르 중독"];
   const FORTUNE_COLOR = ["파랑", "노랑", "분홍", "초록", "보라", "주황", "하양"];
 
-  function hashDateString(str) {
-    let hash = 0;
-    for (const ch of str) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-    return hash;
+  function pickRandom(list) {
+    return list[Math.floor(Math.random() * list.length)];
   }
 
-  function getTodaysFortune() {
-    const base = hashDateString(lastDate);
+  function getRandomFortune() {
     return {
-      love: FORTUNE_LOVE[base % FORTUNE_LOVE.length],
-      caution: FORTUNE_CAUTION[Math.floor(base / 7) % FORTUNE_CAUTION.length],
-      color: FORTUNE_COLOR[Math.floor(base / 13) % FORTUNE_COLOR.length],
+      love: pickRandom(FORTUNE_LOVE),
+      caution: pickRandom(FORTUNE_CAUTION),
+      color: pickRandom(FORTUNE_COLOR),
     };
   }
 
-  function showTodaysFortune(anchorEl) {
-    const f = getTodaysFortune();
+  function showFortune(anchorEl) {
+    const f = getRandomFortune();
     showBubble(
       `🥠 오늘의 운세<br>오늘은 애정운이 ${f.love}<br>오늘은 ${f.caution}을 조심하세요<br>오늘은 ${f.color}이 잘 어울려요`,
       5000,
@@ -194,12 +191,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showBubbleOn(bubbleEl, html, ms, anchorEl) {
     bubbleEl.innerHTML = html;
+    bubbleEl.classList.remove("hidden");
     const anchorRect = anchorEl.getBoundingClientRect();
     const sceneRect = scene.getBoundingClientRect();
     bubbleEl.style.left = `${anchorRect.left - sceneRect.left + anchorRect.width / 2}px`;
     bubbleEl.style.top = `${anchorRect.top - sceneRect.top - 10}px`;
     bubbleEl.style.transform = "translate(-50%, -100%)";
-    bubbleEl.classList.remove("hidden");
+
+    // 운세 지점처럼 화면 가장자리(특히 우측 하단)에 있으면 말풍선이 화면 밖으로
+    // 잘려나가므로, 실제로 그려진 크기를 재서 안쪽으로 밀어줌
+    const margin = 8;
+    const bubbleRect = bubbleEl.getBoundingClientRect();
+    let shiftX = 0;
+    if (bubbleRect.left < sceneRect.left + margin) shiftX = sceneRect.left + margin - bubbleRect.left;
+    else if (bubbleRect.right > sceneRect.right - margin) shiftX = sceneRect.right - margin - bubbleRect.right;
+    if (shiftX) bubbleEl.style.transform = `translate(calc(-50% + ${shiftX}px), -100%)`;
+
     return setTimeout(() => bubbleEl.classList.add("hidden"), ms);
   }
 
@@ -597,7 +604,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         hunger = clamp(hunger - 1, 1, 5);
         if (rectsOverlap(catWrap.getBoundingClientRect(), fortuneSpot.getBoundingClientRect())) {
-          showTodaysFortune(catWrap);
+          showFortune(catWrap);
         }
       }
       applyHungerEffects();
@@ -678,7 +685,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------- 운세 지점: 클릭해도, 고양이를 드래그해서 데려다놔도 오늘의 운세 ----------
   fortuneSpot.addEventListener("click", () => {
-    showTodaysFortune(fortuneSpot);
+    showFortune(fortuneSpot);
   });
 
   // ---------- 설정 모달: 고양이 이름 / 스킨 ----------
