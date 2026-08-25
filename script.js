@@ -844,13 +844,15 @@ document.addEventListener("DOMContentLoaded", () => {
           remoteSounds.set(payload.userId, payload.sound || null);
         }
       })
+      .on("system", {}, (payload) => console.log("[realtime] system event:", payload))
       .subscribe((status, err) => {
         console.log("[realtime] channel status:", status, err || "");
         if (status === "SUBSCRIBED") {
           broadcastPresence();
           broadcastFootstepSound();
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          onlineCountEl.textContent = `🌐 연결 실패 (${status})`;
+          const detail = err && (err.message || err.reason || JSON.stringify(err));
+          onlineCountEl.textContent = `🌐 연결 실패 (${status})${detail ? ": " + detail : ""}`;
         }
       });
     setInterval(broadcastPresence, PRESENCE_INTERVAL_MS);
