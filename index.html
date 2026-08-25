@@ -10,11 +10,11 @@
   <div id="game">
     <div id="status-bar">
       <span id="online-count"></span>
+      <button id="toggle-background" type="button" title="배경 전환">🖼️</button>
       <button id="account-toggle" type="button" title="계정/설정">🐾</button>
       <div id="account-menu" class="hidden">
         <div id="current-user-label"></div>
         <button id="open-settings" type="button">고양이 설정</button>
-        <button id="toggle-background" type="button">배경 전환</button>
         <button id="switch-user" type="button">로그아웃</button>
       </div>
     </div>
@@ -33,48 +33,6 @@
     </div>
 
     <div id="scene">
-      <div class="sky-decor" aria-hidden="true">
-        <!-- 아케이드 버블 게임 감성: 알록달록 방울들이 둥실둥실 -->
-        <div class="theme-decor theme-arcade">
-          <span class="bubble bubble-1"></span>
-          <span class="bubble bubble-2"></span>
-          <span class="bubble bubble-3"></span>
-          <span class="bubble bubble-4"></span>
-          <span class="bubble bubble-5"></span>
-          <span class="bubble bubble-6"></span>
-          <span class="bubble bubble-7"></span>
-          <span class="bubble bubble-8"></span>
-        </div>
-
-        <!-- 지브리풍 목가적 시골 풍경: 해, 뭉게구름, 언덕, 새 -->
-        <div class="theme-decor theme-ghibli">
-          <div class="ghibli-sun"></div>
-          <span class="deco cloud cloud-1">☁️</span>
-          <span class="deco cloud cloud-2">☁️</span>
-          <span class="deco cloud cloud-3">☁️</span>
-          <span class="deco bird bird-1">🐦</span>
-          <span class="deco bird bird-2">🐦</span>
-          <div class="ghibli-hills"></div>
-        </div>
-
-        <!-- 디즈니풍 동화 성 + 별빛 밤하늘 -->
-        <div class="theme-decor theme-disney">
-          <div class="twinkle-dots"></div>
-          <span class="deco spark spark-1">✨</span>
-          <span class="deco spark spark-2">✨</span>
-          <span class="deco spark spark-3">💫</span>
-          <span class="deco spark spark-4">⭐</span>
-          <div class="disney-castle"></div>
-        </div>
-
-        <!-- 마블풍 코믹북: 하프톤 도트 + 방사형 액션 라인 -->
-        <div class="theme-decor theme-marvel">
-          <div class="marvel-burst"></div>
-          <div class="halftone"></div>
-          <span class="pow">냥냥펀치!💥</span>
-        </div>
-      </div>
-
       <div id="cat-wrap">
         <div id="cat-name-tag" class="hidden"></div>
         <div id="cat-flip">

@@ -64,17 +64,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const resetSoundBtn = document.getElementById("reset-sound-btn");
   const soundStatusEl = document.getElementById("sound-status");
 
-  // ---------- Phase 1: 배경 전환 (아케이드 / 지브리풍 / 디즈니풍 / 마블풍 4종을 순서대로) ----------
-  const BACKGROUND_CLASSES = ["bg-arcade", "bg-ghibli", "bg-disney", "bg-marvel"];
-  let backgroundIndex = 0;
-  scene.classList.add(BACKGROUND_CLASSES[0]);
+  // ---------- Phase 1: 배경 전환 (연못 사진 / 숲길 사진 두 장을 토글) ----------
   toggleBackgroundBtn.addEventListener("click", () => {
-    backgroundIndex = (backgroundIndex + 1) % BACKGROUND_CLASSES.length;
-    scene.classList.remove(...BACKGROUND_CLASSES);
-    scene.classList.add(BACKGROUND_CLASSES[backgroundIndex]);
+    scene.classList.toggle("bg-forest");
   });
 
-  // ---------- 계정 메뉴: 동그라미 버튼을 누르면 이메일/설정/배경전환/로그아웃이 펼쳐짐 ----------
+  // ---------- 계정 메뉴: 동그라미 버튼을 누르면 이메일/설정/로그아웃이 펼쳐짐 ----------
   accountToggleBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     accountMenu.classList.toggle("hidden");
