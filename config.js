@@ -7,4 +7,4 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // 친구 고양이 실시간 만남용 서버 (자체 Python 서버, Render에 배포)
 // server/ 폴더를 Render에 Web Service로 배포한 뒤 그 주소를 여기에 넣으세요.
 // 예: "https://cnu-cat-realtime.onrender.com"
-const REALTIME_WS_URL = "https://YOUR-RENDER-URL.onrender.com";
+const REALTIME_WS_URL = "https://cnu-cat-realtime.onrender.com";
