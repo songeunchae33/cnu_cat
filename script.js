@@ -191,15 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 걸을 때마다 나는 발걸음 효과음: 사용자가 녹음한 소리가 있으면 그걸 쓰고,
   // 없으면 귀여운 레트로 "뾱뾱" 합성음을 씀
   let footstepAudioEl = null;
-  function playFootstep() {
-    if (footstepSoundDataUrl) {
-      if (!footstepAudioEl) footstepAudioEl = new Audio();
-      if (footstepAudioEl.src !== footstepSoundDataUrl) footstepAudioEl.src = footstepSoundDataUrl;
-      footstepAudioEl.currentTime = 0;
-      footstepAudioEl.play().catch(() => {});
-      return;
-    }
-
+  function playFootstepSynth() {
     const ctx = ensureAudio();
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -214,6 +206,35 @@ document.addEventListener("DOMContentLoaded", () => {
     osc.connect(gain).connect(ctx.destination);
     osc.start(now);
     osc.stop(now + 0.12);
+  }
+
+  function playFootstep() {
+    if (footstepSoundDataUrl) {
+      if (!footstepAudioEl) footstepAudioEl = new Audio();
+      if (footstepAudioEl.src !== footstepSoundDataUrl) footstepAudioEl.src = footstepSoundDataUrl;
+      footstepAudioEl.currentTime = 0;
+      footstepAudioEl.play().catch(() => {});
+      return;
+    }
+    playFootstepSynth();
+  }
+
+  // 친구 고양이가 걸을 때 나는 발걸음 소리: 그 친구가 녹음한 소리가 있으면 그걸, 없으면 기본 합성음
+  const remoteFootstepAudio = new Map(); // userId -> Audio
+  function playRemoteFootstep(userId) {
+    const soundUrl = remoteSounds.get(userId);
+    if (soundUrl) {
+      let audioEl = remoteFootstepAudio.get(userId);
+      if (!audioEl) {
+        audioEl = new Audio();
+        remoteFootstepAudio.set(userId, audioEl);
+      }
+      if (audioEl.src !== soundUrl) audioEl.src = soundUrl;
+      audioEl.currentTime = 0;
+      audioEl.play().catch(() => {});
+      return;
+    }
+    playFootstepSynth();
   }
 
   function playMeow() {
@@ -644,9 +665,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ---------- 발걸음 효과음 녹음 (마이크) ----------
-  const MAX_RECORD_MS = 1500;
+  // 길이는 직접 정하도록 자유롭게 두되(녹음 버튼을 다시 누르면 그 순간 멈춤),
+  // 실수로 계속 켜둔 채 잊어버릴 때를 대비해 최대 60초에서 안전하게 자동 종료.
+  const MAX_RECORD_MS = 60000;
   let mediaRecorder = null;
   let recordTimer = null;
+  let recordTickTimer = null;
+  let recordStartedAt = 0;
 
   function blobToDataUrl(blob) {
     return new Promise((resolve, reject) => {
@@ -675,11 +700,17 @@ document.addEventListener("DOMContentLoaded", () => {
         footstepSoundDataUrl = await blobToDataUrl(blob);
         updateSoundStatus();
         saveUserState();
+        broadcastFootstepSound();
       };
       mediaRecorder.start();
       recordSoundBtn.textContent = "⏹ 녹음 중지";
       recordSoundBtn.classList.add("recording");
-      soundStatusEl.textContent = "녹음 중... (최대 1.5초)";
+      recordStartedAt = Date.now();
+      soundStatusEl.textContent = "녹음 중... 0초 (원하는 만큼 녹음하고 버튼을 눌러 멈추세요)";
+      recordTickTimer = setInterval(() => {
+        const sec = Math.floor((Date.now() - recordStartedAt) / 1000);
+        soundStatusEl.textContent = `녹음 중... ${sec}초 (버튼을 누르면 멈춰요)`;
+      }, 200);
       recordTimer = setTimeout(stopRecording, MAX_RECORD_MS);
     } catch (err) {
       soundStatusEl.textContent = "마이크 권한이 필요해요.";
@@ -688,6 +719,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function stopRecording() {
     clearTimeout(recordTimer);
+    clearInterval(recordTickTimer);
+    recordTickTimer = null;
     recordSoundBtn.textContent = "🎙️ 녹음하기";
     recordSoundBtn.classList.remove("recording");
     if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
@@ -710,11 +743,13 @@ document.addEventListener("DOMContentLoaded", () => {
     footstepAudioEl = null;
     updateSoundStatus();
     saveUserState();
+    broadcastFootstepSound();
   });
 
   // ---------- 친구 고양이 실시간 만남: Supabase Presence(임시 방송, DB에 남지 않음) ----------
   let presenceChannel = null;
   const remoteCats = new Map(); // userId -> { wrapEl, nameEl, flipEl, spriteEl, lastX, lastY }
+  const remoteSounds = new Map(); // userId -> 녹음된 발걸음 소리 dataUrl | null(기본 합성음)
   const PRESENCE_INTERVAL_MS = 400;
 
   function updateOnlineCount() {
@@ -748,6 +783,7 @@ document.addEventListener("DOMContentLoaded", () => {
     entry.wrapEl.style.top = `${info.y}px`;
     entry.lastX = info.x;
     entry.lastY = info.y;
+    if (moved) playRemoteFootstep(userId);
   }
 
   function removeRemoteCat(userId) {
@@ -756,6 +792,8 @@ document.addEventListener("DOMContentLoaded", () => {
       entry.wrapEl.remove();
       remoteCats.delete(userId);
     }
+    remoteSounds.delete(userId);
+    remoteFootstepAudio.delete(userId);
   }
 
   function syncRemoteCats(state) {
@@ -783,13 +821,37 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // 발걸음 소리는 용량이 있어서 400ms마다 도는 presence track()엔 안 싣고,
+  // 내가 접속했을 때 / 소리를 바꿨을 때 / 새 친구가 들어왔을 때만 방송(broadcast)한다.
+  function broadcastFootstepSound() {
+    if (!presenceChannel || !currentUser) return;
+    presenceChannel.send({
+      type: "broadcast",
+      event: "footstep_sound",
+      payload: { userId: currentUser.id, sound: footstepSoundDataUrl },
+    });
+  }
+
   function connectRealtime() {
     if (!sb || !currentUser) return;
+    onlineCountEl.textContent = "🌐 연결 중...";
     presenceChannel = sb.channel("cats-room", { config: { presence: { key: currentUser.id } } });
     presenceChannel
       .on("presence", { event: "sync" }, () => syncRemoteCats(presenceChannel.presenceState()))
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") broadcastPresence();
+      .on("presence", { event: "join" }, () => broadcastFootstepSound())
+      .on("broadcast", { event: "footstep_sound" }, ({ payload }) => {
+        if (payload && payload.userId && payload.userId !== currentUser.id) {
+          remoteSounds.set(payload.userId, payload.sound || null);
+        }
+      })
+      .subscribe((status, err) => {
+        console.log("[realtime] channel status:", status, err || "");
+        if (status === "SUBSCRIBED") {
+          broadcastPresence();
+          broadcastFootstepSound();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          onlineCountEl.textContent = `🌐 연결 실패 (${status})`;
+        }
       });
     setInterval(broadcastPresence, PRESENCE_INTERVAL_MS);
   }
