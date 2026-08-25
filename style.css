@@ -76,23 +76,16 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, #1b0f3a 0%, #4a2f7a 35%, #b0568c 65%, #f2a35c 100%);
+  background: url("assets/backgrounds/bg-city.jpg") center/cover no-repeat;
 }
 
 #scene.bg-nature {
-  background: linear-gradient(to bottom, #a8e6a1, #eaffea);
+  background: url("assets/backgrounds/bg-nature.jpg") center/cover no-repeat;
 }
 
-#scene.bg-nature .city-decor {
-  display: none;
-}
-
-/* 레트로 픽셀 도시 배경: 별/달/2겹 빌딩 숲 실루엣을 순수 CSS로 구현 */
+/* 실제 배경 사진으로 교체되면서 예전 CSS 픽셀아트 도시(별/달/빌딩 실루엣)는 더 이상 안 씀 */
 .city-decor {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
+  display: none;
 }
 
 .stars {
