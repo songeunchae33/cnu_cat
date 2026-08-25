@@ -283,7 +283,9 @@ body {
   top: 0;
   left: 0;
   display: inline-block;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
   z-index: 4;
   transition: left 0.4s linear, top 0.4s linear;
 }
@@ -379,6 +381,26 @@ body {
   }
 }
 
+.footprint {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 13px;
+  pointer-events: none;
+  z-index: 3;
+  animation: footprint-fade 1.4s ease-out forwards;
+}
+
+@keyframes footprint-fade {
+  0% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
 .float-pop {
   position: absolute;
   transform: translate(-50%, 0);
@@ -400,7 +422,7 @@ body {
   }
 }
 
-#speech-bubble {
+.speech-bubble {
   position: absolute;
   max-width: 220px;
   padding: 8px 12px;
@@ -414,8 +436,45 @@ body {
   z-index: 20;
 }
 
-#speech-bubble.hidden {
+.speech-bubble.hidden {
   display: none;
+}
+
+.remote-cat .speech-bubble {
+  left: 50%;
+  top: -10px;
+  transform: translate(-50%, -100%);
+  background: #fff8e6;
+}
+
+#chat-form {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 30;
+  background: rgba(20, 15, 30, 0.55);
+  padding: 8px;
+  border-radius: 10px;
+}
+
+#chat-input {
+  width: 220px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 13px;
+}
+
+#chat-form button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: #ffcf5c;
+  font-size: 13px;
+  cursor: pointer;
 }
 
 /* ---------- 로그인 / 설정 모달 ---------- */

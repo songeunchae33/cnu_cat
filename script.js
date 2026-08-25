@@ -29,6 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleBackgroundBtn = document.getElementById("toggle-background");
   const statusBar = document.getElementById("status-bar");
   const speechBubble = document.getElementById("speech-bubble");
+  const chatForm = document.getElementById("chat-form");
+  const chatInput = document.getElementById("chat-input");
   const fortuneSpot = document.getElementById("fortune-spot");
   const hungerValueEl = document.getElementById("hunger-value");
   const affectionValueEl = document.getElementById("affection-value");
@@ -155,24 +157,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ---------- 말풍선 / 이펙트 ----------
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showBubbleOn(bubbleEl, html, ms, anchorEl) {
+    bubbleEl.innerHTML = html;
+    const anchorRect = anchorEl.getBoundingClientRect();
+    const sceneRect = scene.getBoundingClientRect();
+    bubbleEl.style.left = `${anchorRect.left - sceneRect.left + anchorRect.width / 2}px`;
+    bubbleEl.style.top = `${anchorRect.top - sceneRect.top - 10}px`;
+    bubbleEl.style.transform = "translate(-50%, -100%)";
+    bubbleEl.classList.remove("hidden");
+    return setTimeout(() => bubbleEl.classList.add("hidden"), ms);
+  }
+
   let bubbleTimer;
   function showBubble(html, ms = 2600, anchorEl = catWrap) {
     clearTimeout(bubbleTimer);
-    speechBubble.innerHTML = html;
-    const anchorRect = anchorEl.getBoundingClientRect();
-    const sceneRect = scene.getBoundingClientRect();
-    speechBubble.style.left = `${anchorRect.left - sceneRect.left + anchorRect.width / 2}px`;
-    speechBubble.style.top = `${anchorRect.top - sceneRect.top - 10}px`;
-    speechBubble.style.transform = "translate(-50%, -100%)";
-    speechBubble.classList.remove("hidden");
-    bubbleTimer = setTimeout(() => speechBubble.classList.add("hidden"), ms);
+    bubbleTimer = showBubbleOn(speechBubble, html, ms, anchorEl);
   }
 
-  function spawnFloatText(text) {
+  function spawnFloatText(text, anchorEl = catWrap) {
     const el = document.createElement("div");
     el.className = "float-pop";
     el.textContent = text;
-    const wrapRect = catWrap.getBoundingClientRect();
+    const wrapRect = anchorEl.getBoundingClientRect();
     const sceneRect = scene.getBoundingClientRect();
     el.style.left = `${wrapRect.left - sceneRect.left + wrapRect.width / 2}px`;
     el.style.top = `${wrapRect.top - sceneRect.top}px`;
@@ -665,9 +677,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ---------- 발걸음 효과음 녹음 (마이크) ----------
-  // 길이는 직접 정하도록 자유롭게 두되(녹음 버튼을 다시 누르면 그 순간 멈춤),
-  // 실수로 계속 켜둔 채 잊어버릴 때를 대비해 최대 60초에서 안전하게 자동 종료.
-  const MAX_RECORD_MS = 60000;
+  // 발걸음 소리는 걸을 때마다(0.35초 간격) 처음부터 다시 재생되므로 그 이상 길게
+  // 녹음해도 실제로 들리진 않음. 대신 친구에게 그대로 전송되는 데이터라 너무 길면
+  // 멀티플레이가 버벅여서(대용량 전송) 5초로 제한 — 그 안에서는 버튼으로 자유롭게 멈춤.
+  const MAX_RECORD_MS = 5000;
   let mediaRecorder = null;
   let recordTimer = null;
   let recordTickTimer = null;
@@ -765,17 +778,39 @@ document.addEventListener("DOMContentLoaded", () => {
       const wrap = document.createElement("div");
       wrap.className = "cat-wrap remote-cat";
       wrap.innerHTML =
-        '<div class="cat-name-tag"></div><div class="cat-flip"><div class="cat-sprite state-idle"></div></div>';
+        '<div class="cat-name-tag"></div><div class="cat-flip"><div class="cat-sprite state-idle"></div></div>' +
+        '<div class="speech-bubble hidden"></div>';
       scene.appendChild(wrap);
       entry = {
         wrapEl: wrap,
         nameEl: wrap.querySelector(".cat-name-tag"),
         flipEl: wrap.querySelector(".cat-flip"),
         spriteEl: wrap.querySelector(".cat-sprite"),
+        bubbleEl: wrap.querySelector(".speech-bubble"),
+        bubbleTimer: null,
         lastX: info.x,
         lastY: info.y,
       };
       remoteCats.set(userId, entry);
+
+      // 남의 고양이 괴롭히기: 3초 넘게 마구 흔들면 그 친구 배고픔이 1 줄어듦
+      attachDrag(wrap, {
+        getBoundsFn: getBounds,
+        onStart() {
+          wrap.style.transition = "none";
+        },
+        onMove(x, y) {
+          wrap.style.left = `${x}px`;
+          wrap.style.top = `${y}px`;
+        },
+        onEnd(moved, dragInfo) {
+          wrap.style.transition = "";
+          if (!moved) return;
+          const shakeFactor = dragInfo.totalPath / (dragInfo.displacement + 1);
+          const isShaken = dragInfo.durationMs >= 3000 && dragInfo.totalPath >= 500 && shakeFactor >= 3;
+          if (isShaken) pokeRemoteCat(userId, entry.wrapEl);
+        },
+      });
     }
 
     const moved = Math.hypot(info.x - entry.lastX, info.y - entry.lastY) > 2;
@@ -792,11 +827,21 @@ document.addEventListener("DOMContentLoaded", () => {
   function removeRemoteCat(userId) {
     const entry = remoteCats.get(userId);
     if (entry) {
+      clearTimeout(entry.bubbleTimer);
       entry.wrapEl.remove();
       remoteCats.delete(userId);
     }
     remoteSounds.delete(userId);
     remoteFootstepAudio.delete(userId);
+  }
+
+  function showRemoteBubble(userId, text, ms = 3200) {
+    const entry = remoteCats.get(userId);
+    if (!entry) return;
+    clearTimeout(entry.bubbleTimer);
+    entry.bubbleEl.textContent = text;
+    entry.bubbleEl.classList.remove("hidden");
+    entry.bubbleTimer = setTimeout(() => entry.bubbleEl.classList.add("hidden"), ms);
   }
 
   // 재연결 시 예전 친구 목록이 유령처럼 남지 않도록 비우고, 서버가 보내주는 최신 목록으로 다시 채운다.
@@ -822,6 +867,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!rtSocket || rtSocket.readyState !== WebSocket.OPEN || !currentUser) return;
     rtSocket.send(JSON.stringify({ type: "sound", sound: footstepSoundDataUrl }));
   }
+
+  function pokeRemoteCat(targetId, anchorEl) {
+    if (!rtSocket || rtSocket.readyState !== WebSocket.OPEN) return;
+    rtSocket.send(JSON.stringify({ type: "poke", target: targetId }));
+    spawnFloatText("😾 흔들흔들!", anchorEl);
+  }
+
+  function broadcastChat(text) {
+    if (!rtSocket || rtSocket.readyState !== WebSocket.OPEN || !currentUser) return;
+    rtSocket.send(JSON.stringify({ type: "chat", text }));
+  }
+
+  chatForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = chatInput.value.trim();
+    if (!text) return;
+    showBubble(escapeHtml(text), 3200);
+    broadcastChat(text);
+    chatInput.value = "";
+  });
 
   function connectRealtime() {
     if (!currentUser) return;
@@ -859,6 +924,17 @@ document.addEventListener("DOMContentLoaded", () => {
         updateOnlineCount();
       } else if (msg.type === "sound") {
         remoteSounds.set(msg.id, msg.sound || null);
+      } else if (msg.type === "chat") {
+        showRemoteBubble(msg.id, msg.text || "");
+      } else if (msg.type === "poke") {
+        if (msg.target === currentUser.id) {
+          hunger = clamp(hunger - 1, 1, 5);
+          applyHungerEffects();
+          updateStatusBar();
+          saveUserState();
+          spawnFloatText("😿 -1");
+          showBubble("누가 나를 흔들었어! 😾", 2000);
+        }
       } else if (msg.type === "leave") {
         removeRemoteCat(msg.id);
         updateOnlineCount();

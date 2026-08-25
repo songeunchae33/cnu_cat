@@ -44,7 +44,12 @@
       <div id="fortune-spot" title="클릭하거나, 고양이를 이곳으로 데려오면 오늘의 한마디를 알려줘요">🥠</div>
     </div>
 
-    <div id="speech-bubble" class="hidden"></div>
+    <div id="speech-bubble" class="speech-bubble hidden"></div>
+
+    <form id="chat-form" autocomplete="off">
+      <input id="chat-input" type="text" maxlength="120" placeholder="친구에게 메시지 보내기..." />
+      <button type="submit">💬 보내기</button>
+    </form>
 
     <div id="login-overlay">
       <form id="login-form" class="modal-card">
@@ -92,7 +97,7 @@
         </div>
         <div class="settings-field">
           <span>걸을 때 나는 소리</span>
-          <p class="settings-hint">직접 녹음하면 기본 효과음 대신 그 소리가 걸을 때마다 반복돼요. 원하는 만큼 녹음하고 버튼을 눌러 멈추세요 (최대 60초). 친구도 같이 있으면 서로의 발걸음 소리가 들려요.</p>
+          <p class="settings-hint">직접 녹음하면 기본 효과음 대신 그 소리가 걸을 때마다 반복돼요. 버튼을 눌러 원하는 길이에서 멈추세요 (최대 5초 — 어차피 걸을 때마다 처음부터 다시 재생돼서 그 이상은 의미가 없어요). 친구도 같이 있으면 서로의 발걸음 소리가 들려요.</p>
           <div class="sound-recorder">
             <button id="record-sound-btn" type="button">🎙️ 녹음하기</button>
             <button id="preview-sound-btn" type="button">▶️ 미리듣기</button>
