@@ -6,12 +6,20 @@
 """
 
 import asyncio
+import hashlib
 import json
 import os
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 # client_id -> {"ws": WebSocket, "state": dict | None, "sound": str | None}
 clients: dict[str, dict] = {}
@@ -20,6 +28,25 @@ clients: dict[str, dict] = {}
 # (base64라 원본 오디오보다 33% 정도 더 큼) 넉넉하게 잡아도 이 정도면 충분함.
 MAX_SOUND_BYTES = 400_000
 MAX_CHAT_CHARS = 120
+
+# ---------- 오늘의 운세: user_id + date를 해시해서 결정론적으로 뽑음 ----------
+# 같은 사람이 같은 날 몇 번을 다시 봐도 항상 같은 결과가 나오고(해시가 같으니까),
+# 서버가 아무것도 저장하지 않아도(무상태) 자정이 지나면 자연히 새 결과로 바뀜.
+FORTUNE_LOVE = ["최고예요 💕", "따뜻해요 😽", "잔잔하게 좋아요", "빠르게 오르는 중이에요", "폭발적이에요 😻"]
+FORTUNE_CAUTION = ["낮잠 과다", "간식 과식", "혼자만의 시간 부족", "발톱 정리 깜빡", "창밖 멍때리기", "츄르 중독"]
+FORTUNE_COLOR = ["파랑", "노랑", "분홍", "초록", "보라", "주황", "하양"]
+
+
+@app.get("/fortune")
+def fortune(user_id: str, date: str):
+    seed = f"{user_id}:{date}".encode()
+    n = int(hashlib.sha256(seed).hexdigest(), 16)
+    return {
+        "love": FORTUNE_LOVE[n % len(FORTUNE_LOVE)],
+        "caution": FORTUNE_CAUTION[(n // 7) % len(FORTUNE_CAUTION)],
+        "color": FORTUNE_COLOR[(n // 13) % len(FORTUNE_COLOR)],
+        "score": 1 + (n // 17) % 100,
+    }
 
 
 @app.get("/")

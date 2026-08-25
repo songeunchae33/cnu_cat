@@ -29,6 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleBackgroundBtn = document.getElementById("toggle-background");
   const statusBar = document.getElementById("status-bar");
   const speechBubble = document.getElementById("speech-bubble");
+  const fortunePopup = document.getElementById("fortune-popup");
+  const fortuneParchment = document.getElementById("fortune-parchment");
   const chatForm = document.getElementById("chat-form");
   const chatInput = document.getElementById("chat-input");
   const fortuneSpot = document.getElementById("fortune-spot");
@@ -38,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const affectionPipsEl = document.getElementById("affection-pips");
   const currentUserLabel = document.getElementById("current-user-label");
   const onlineCountEl = document.getElementById("online-count");
+  const accountToggleBtn = document.getElementById("account-toggle");
+  const accountMenu = document.getElementById("account-menu");
 
   const loginOverlay = document.getElementById("login-overlay");
   const loginForm = document.getElementById("login-form");
@@ -60,14 +64,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const resetSoundBtn = document.getElementById("reset-sound-btn");
   const soundStatusEl = document.getElementById("sound-status");
 
-  // ---------- Phase 1: 배경 전환 (기본 / bg-nature / bg-twilight 3종을 순서대로) ----------
-  const BACKGROUND_CLASSES = [null, "bg-nature", "bg-twilight"];
+  // ---------- Phase 1: 배경 전환 (아케이드 / 지브리풍 / 디즈니풍 / 마블풍 4종을 순서대로) ----------
+  const BACKGROUND_CLASSES = ["bg-arcade", "bg-ghibli", "bg-disney", "bg-marvel"];
   let backgroundIndex = 0;
+  scene.classList.add(BACKGROUND_CLASSES[0]);
   toggleBackgroundBtn.addEventListener("click", () => {
     backgroundIndex = (backgroundIndex + 1) % BACKGROUND_CLASSES.length;
-    scene.classList.remove("bg-nature", "bg-twilight");
-    const next = BACKGROUND_CLASSES[backgroundIndex];
-    if (next) scene.classList.add(next);
+    scene.classList.remove(...BACKGROUND_CLASSES);
+    scene.classList.add(BACKGROUND_CLASSES[backgroundIndex]);
+  });
+
+  // ---------- 계정 메뉴: 동그라미 버튼을 누르면 이메일/설정/배경전환/로그아웃이 펼쳐짐 ----------
+  accountToggleBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    accountMenu.classList.toggle("hidden");
+  });
+  document.addEventListener("click", (e) => {
+    if (!accountMenu.classList.contains("hidden") && !accountMenu.contains(e.target) && e.target !== accountToggleBtn) {
+      accountMenu.classList.add("hidden");
+    }
   });
 
   // ---------- 사용자별 데이터 (Supabase auth + "cats" 테이블에 저장) ----------
@@ -125,7 +140,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return sayings[Math.floor(Math.random() * sayings.length)];
   }
 
-  // ---------- 운세 지점(🥠): 매번 새로 뽑히는 운세 ----------
+  // ---------- 운세 지점(🥠): 같은 사람이 같은 날 다시 보면 항상 같은 결과가 나오도록
+  // 서버(멀티플레이 서버의 /fortune)에서 계산해서 내려줌. 서버에 못 닿을 때만 로컬로 대체 ----------
   const FORTUNE_LOVE = ["최고예요 💕", "따뜻해요 😽", "잔잔하게 좋아요", "빠르게 오르는 중이에요", "폭발적이에요 😻"];
   const FORTUNE_CAUTION = ["낮잠 과다", "간식 과식", "혼자만의 시간 부족", "발톱 정리 깜빡", "창밖 멍때리기", "츄르 중독"];
   const FORTUNE_COLOR = ["파랑", "노랑", "분홍", "초록", "보라", "주황", "하양"];
@@ -134,20 +150,54 @@ document.addEventListener("DOMContentLoaded", () => {
     return list[Math.floor(Math.random() * list.length)];
   }
 
-  function getRandomFortune() {
+  function getLocalFortune() {
     return {
       love: pickRandom(FORTUNE_LOVE),
       caution: pickRandom(FORTUNE_CAUTION),
       color: pickRandom(FORTUNE_COLOR),
+      score: 1 + Math.floor(Math.random() * 100),
     };
   }
 
-  function showFortune(anchorEl) {
-    const f = getRandomFortune();
-    showBubble(
-      `🥠 오늘의 운세<br>오늘은 애정운이 ${f.love}<br>오늘은 ${f.caution}을 조심하세요<br>오늘은 ${f.color}이 잘 어울려요`,
-      5000,
-      anchorEl
+  async function fetchFortune() {
+    if (!currentUser || !isRealtimeConfigured) return getLocalFortune();
+    try {
+      const url = `${REALTIME_WS_URL}/fortune?user_id=${encodeURIComponent(currentUser.id)}&date=${encodeURIComponent(lastDate)}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`fortune api ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn("운세 서버 호출 실패, 로컬 운세로 대체", err);
+      return getLocalFortune();
+    }
+  }
+
+  let fortunePopupTimer = null;
+  let fortunePopupCloseTimer = null;
+
+  function showFortunePopup(html) {
+    clearTimeout(fortunePopupTimer);
+    clearTimeout(fortunePopupCloseTimer);
+    fortuneParchment.classList.remove("closing");
+    fortuneParchment.innerHTML = html;
+    fortunePopup.classList.remove("hidden");
+
+    fortunePopupTimer = setTimeout(() => {
+      const parchmentRect = fortuneParchment.getBoundingClientRect();
+      const spotRect = fortuneSpot.getBoundingClientRect();
+      const closeX = spotRect.left + spotRect.width / 2 - (parchmentRect.left + parchmentRect.width / 2);
+      const closeY = spotRect.top + spotRect.height / 2 - (parchmentRect.top + parchmentRect.height / 2);
+      fortuneParchment.style.setProperty("--closeX", `${closeX}px`);
+      fortuneParchment.style.setProperty("--closeY", `${closeY}px`);
+      fortuneParchment.classList.add("closing");
+      fortunePopupCloseTimer = setTimeout(() => fortunePopup.classList.add("hidden"), 650);
+    }, 5000);
+  }
+
+  async function showFortune() {
+    const f = await fetchFortune();
+    showFortunePopup(
+      `🥠 오늘의 운세<br>오늘의 점수: <strong>${f.score}점</strong> / 100<br>오늘은 애정운이 ${f.love}<br>오늘은 ${f.caution}을 조심하세요<br>오늘은 ${f.color}이 잘 어울려요`
     );
   }
 
@@ -604,7 +654,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         hunger = clamp(hunger - 1, 1, 5);
         if (rectsOverlap(catWrap.getBoundingClientRect(), fortuneSpot.getBoundingClientRect())) {
-          showFortune(catWrap);
+          showFortune();
         }
       }
       applyHungerEffects();
@@ -685,7 +735,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------- 운세 지점: 클릭해도, 고양이를 드래그해서 데려다놔도 오늘의 운세 ----------
   fortuneSpot.addEventListener("click", () => {
-    showFortune(fortuneSpot);
+    showFortune();
   });
 
   // ---------- 설정 모달: 고양이 이름 / 스킨 ----------
