@@ -424,6 +424,7 @@ body {
 
 .speech-bubble {
   position: absolute;
+  width: max-content;
   max-width: 220px;
   padding: 8px 12px;
   background: white;

@@ -100,6 +100,12 @@ async def ws_endpoint(websocket: WebSocket):
                     continue
                 await broadcast(client_id, {"type": "poke", "id": client_id, "target": target})
 
+            elif msg_type == "feed" and client_id:
+                target = str(msg.get("target") or "")[:64]
+                if not target:
+                    continue
+                await broadcast(client_id, {"type": "feed", "id": client_id, "target": target})
+
     except WebSocketDisconnect:
         pass
     finally:

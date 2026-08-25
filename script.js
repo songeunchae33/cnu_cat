@@ -611,7 +611,8 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       onEnd() {
         can.el.classList.remove("dragging");
-        if (rectsOverlap(can.el.getBoundingClientRect(), catWrap.getBoundingClientRect())) {
+        const canRect = can.el.getBoundingClientRect();
+        if (rectsOverlap(canRect, catWrap.getBoundingClientRect())) {
           hunger = clamp(hunger + 1, 1, 5);
           spawnFloatText("+1 🐟");
           applyHungerEffects();
@@ -619,6 +620,15 @@ document.addEventListener("DOMContentLoaded", () => {
           saveUserState();
           removeCan(can);
           spawnCan();
+          return;
+        }
+        for (const [userId, entry] of remoteCats) {
+          if (rectsOverlap(canRect, entry.wrapEl.getBoundingClientRect())) {
+            feedRemoteCat(userId, entry.wrapEl);
+            removeCan(can);
+            spawnCan();
+            return;
+          }
         }
       },
     });
@@ -874,6 +884,12 @@ document.addEventListener("DOMContentLoaded", () => {
     spawnFloatText("😾 흔들흔들!", anchorEl);
   }
 
+  function feedRemoteCat(targetId, anchorEl) {
+    if (!rtSocket || rtSocket.readyState !== WebSocket.OPEN) return;
+    rtSocket.send(JSON.stringify({ type: "feed", target: targetId }));
+    spawnFloatText("+1 🐟", anchorEl);
+  }
+
   function broadcastChat(text) {
     if (!rtSocket || rtSocket.readyState !== WebSocket.OPEN || !currentUser) return;
     rtSocket.send(JSON.stringify({ type: "chat", text }));
@@ -934,6 +950,15 @@ document.addEventListener("DOMContentLoaded", () => {
           saveUserState();
           spawnFloatText("😿 -1");
           showBubble("누가 나를 흔들었어! 😾", 2000);
+        }
+      } else if (msg.type === "feed") {
+        if (msg.target === currentUser.id) {
+          hunger = clamp(hunger + 1, 1, 5);
+          applyHungerEffects();
+          updateStatusBar();
+          saveUserState();
+          spawnFloatText("+1 🐟");
+          showBubble("친구가 밥을 줬어! 🐟", 2000);
         }
       } else if (msg.type === "leave") {
         removeRemoteCat(msg.id);
