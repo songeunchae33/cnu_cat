@@ -60,9 +60,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const resetSoundBtn = document.getElementById("reset-sound-btn");
   const soundStatusEl = document.getElementById("sound-status");
 
-  // ---------- Phase 1: 배경 전환 ----------
+  // ---------- Phase 1: 배경 전환 (기본 / bg-nature / bg-twilight 3종을 순서대로) ----------
+  const BACKGROUND_CLASSES = [null, "bg-nature", "bg-twilight"];
+  let backgroundIndex = 0;
   toggleBackgroundBtn.addEventListener("click", () => {
-    scene.classList.toggle("bg-nature");
+    backgroundIndex = (backgroundIndex + 1) % BACKGROUND_CLASSES.length;
+    scene.classList.remove("bg-nature", "bg-twilight");
+    const next = BACKGROUND_CLASSES[backgroundIndex];
+    if (next) scene.classList.add(next);
   });
 
   // ---------- 사용자별 데이터 (Supabase auth + "cats" 테이블에 저장) ----------
@@ -319,13 +324,18 @@ document.addEventListener("DOMContentLoaded", () => {
   let footstepTimer = null;
   const FOOTSTEP_INTERVAL_MS = 350;
 
+  function walkTick() {
+    playFootstep();
+    dropFootprint();
+  }
+
   function setCatState(name) {
     cat.classList.remove("state-idle", "state-walk", "state-groom", "state-crouch");
     cat.classList.add(`state-${name}`);
     if (name === "walk") {
       if (!footstepTimer) {
-        playFootstep();
-        footstepTimer = setInterval(playFootstep, FOOTSTEP_INTERVAL_MS);
+        walkTick();
+        footstepTimer = setInterval(walkTick, FOOTSTEP_INTERVAL_MS);
       }
     } else if (footstepTimer) {
       clearInterval(footstepTimer);
@@ -352,11 +362,7 @@ document.addEventListener("DOMContentLoaded", () => {
     catWrap.style.top = `${y}px`;
   }
 
-  // 방향키로 이동할 때, 약 2cm(화면 픽셀 기준 대략 75px) 반경 안에서만 살아있다가
-  // 옅어지며 사라지는 발자국 흔적을 남김
-  const FOOTPRINT_TRAIL_PX = 75;
-  const FOOTPRINT_MIN_GAP_PX = FOOTPRINT_TRAIL_PX / 3;
-  let lastFootprintPos = null;
+  // 걸을 때마다(발걸음 소리와 같은 타이밍) 뒤에 남았다가 옅어지며 사라지는 발자국 흔적
   let footprintSide = 1;
 
   function dropFootprint() {
@@ -370,13 +376,6 @@ document.addEventListener("DOMContentLoaded", () => {
     el.textContent = "🐾";
     scene.appendChild(el);
     el.addEventListener("animationend", () => el.remove());
-  }
-
-  function maybeDropFootprint() {
-    if (!lastFootprintPos || Math.hypot(pos.x - lastFootprintPos.x, pos.y - lastFootprintPos.y) >= FOOTPRINT_MIN_GAP_PX) {
-      dropFootprint();
-      lastFootprintPos = { x: pos.x, y: pos.y };
-    }
   }
 
   function randomPointInBounds() {
@@ -461,7 +460,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (dx !== 0) catFlip.classList.toggle("facing-right", dx > 0);
         setCatState("walk");
         setPosition(nx, ny);
-        maybeDropFootprint();
       } else {
         setCatState(cat.classList.contains("state-groom") ? "groom" : "idle");
       }
@@ -482,7 +480,6 @@ document.addEventListener("DOMContentLoaded", () => {
     manualControl = false;
     if (manualRafId) cancelAnimationFrame(manualRafId);
     manualRafId = null;
-    lastFootprintPos = null;
     resumeAI();
   }
 
